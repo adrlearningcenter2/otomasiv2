@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absensi Training PTO</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+  <!-- HEADER -->
+<div class="bg-indigo-600 text-white py-4 shadow-md">
+  <div class="max-w-3xl mx-auto px-6 flex justify-between items-center">
+    <h1 class="text-lg font-semibold">Absensi Training Otomasi</h1>
+    <a href="admin.html"
+       class="text-sm underline hover:text-gray-200 transition">
+       Admin
+    </a>
+  </div>
+</div>
+
+<div class="max-w-3xl mx-auto p-6">
+
+<div class="bg-white shadow-xl rounded-2xl p-8 mt-6">
+
+<h2 class="text-xl font-bold mb-6">Form Absensi Training</h2>
+
+<form id="attendanceForm" class="space-y-4">
+
+<input type="text" id="nip" placeholder="NIP"
+class="w-full border p-3 rounded-xl" required>
+
+<!-- LOADING LOOKUP -->
+<div id="nipLoading" class="text-sm text-indigo-600 hidden">
+Mencari data karyawan...
+</div>
+
+<input type="text" id="nama" placeholder="Nama"
+class="w-full border p-3 rounded-xl" required>
+
+<input type="text" id="subDivisi" placeholder="Sub Divisi"
+class="w-full border p-3 rounded-xl" required>
+
+<input type="text" id="departemen" placeholder="Departemen"
+class="w-full border p-3 rounded-xl" required>
+
+<select id="jenisPelatihan"
+class="w-full border p-3 rounded-xl" required>
+<option value="">Pilih Program</option>
+<option value="Listrik Dasar">Listrik Dasar</option>
+</select>
+
+<input type="text" id="batchPTO" placeholder="Batch PTO"
+class="w-full border p-3 rounded-xl" required>
+
+<select id="kehadiran"
+class="w-full border p-3 rounded-xl" required>
+<option value="">Pilih Kehadiran</option>
+<option>Hadir</option>
+<option>Sakit</option>
+<option>Tidak Hadir</option>
+</select>
+
+<select id="namaMateri"
+class="w-full border p-3 rounded-xl" required>
+<option value="">Memuat materi...</option>
+</select>
+
+<input type="date" id="tanggal"
+class="w-full border p-3 rounded-xl" required>
+
+<!-- SIGNATURE -->
+<div>
+<label class="block mb-2 font-semibold">Tanda Tangan</label>
+<canvas id="signaturePad"
+width="600" height="200"
+class="w-full border rounded-xl bg-gray-50"></canvas>
+<button type="button" onclick="clearSignature()"
+class="text-red-600 text-sm mt-2">Hapus</button>
+</div>
+
+<button type="submit"
+class="w-full bg-indigo-600 text-white py-3 rounded-xl">
+Submit
+</button>
+
+</form>
+</div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay"
+class="fixed inset-0 bg-black bg-opacity-40 hidden flex items-center justify-center">
+<div class="bg-white px-6 py-4 rounded-xl shadow-lg">
+Memproses...
+</div>
+</div>
+
+<script>
+
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyt7U_OLgJ73b89j3w_NavwvL3q-N9jCkKXwjK1oO43v_IvtDzz47TSw94wjaqFf7uPrQ/exec";
+
+let isSubmitting = false; // 🔒 ANTI DOUBLE SUBMIT
+
+/* =========================
+   LOAD MATERI
+========================= */
+
+function loadMateri(){
+fetch(WEB_APP_URL + "?action=getMateri")
+.then(res => res.json())
+.then(data=>{
+const select = document.getElementById("namaMateri");
+select.innerHTML = '<option value="">Pilih Materi</option>';
+data.forEach(m=>{
+const opt=document.createElement("option");
+opt.value=m;
+opt.textContent=m;
+select.appendChild(opt);
+});
+});
+}
+loadMateri();
+
+/* =========================
+   AUTO READ MASTER + LOADING
+========================= */
+
+document.getElementById("nip").addEventListener("blur",function(){
+
+const nip=this.value.trim();
+if(!nip) return;
+
+document.getElementById("nipLoading").classList.remove("hidden");
+
+fetch(WEB_APP_URL + "?action=getKaryawan&nip="+encodeURIComponent(nip))
+.then(res=>res.json())
+.then(data=>{
+
+document.getElementById("nipLoading").classList.add("hidden");
+
+if(data.status==="success"){
+document.getElementById("nama").value=data.nama||"";
+document.getElementById("subDivisi").value=data.subDivisi||"";
+document.getElementById("departemen").value=data.departemen||"";
+}else{
+document.getElementById("subDivisi").value="";
+document.getElementById("departemen").value="";
+}
+
+})
+.catch(()=>{
+document.getElementById("nipLoading").classList.add("hidden");
+});
+
+});
+
+/* =========================
+   SIGNATURE
+========================= */
+
+const canvas=document.getElementById("signaturePad");
+const ctx=canvas.getContext("2d");
+let drawing=false;
+
+canvas.addEventListener("mousedown",()=>{drawing=true;ctx.beginPath();});
+canvas.addEventListener("mouseup",()=>drawing=false);
+canvas.addEventListener("mousemove",draw);
+
+canvas.addEventListener("touchstart",()=>{drawing=true;ctx.beginPath();});
+canvas.addEventListener("touchend",()=>drawing=false);
+canvas.addEventListener("touchmove",draw);
+
+function draw(e){
+if(!drawing)return;
+e.preventDefault();
+const rect=canvas.getBoundingClientRect();
+const x=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+const y=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+ctx.lineWidth=2;
+ctx.lineCap="round";
+ctx.lineTo(x,y);
+ctx.stroke();
+}
+
+function clearSignature(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+/* =========================
+   SUBMIT + LOADING OVERLAY + LOCK
+========================= */
+
+document.getElementById("attendanceForm")
+.addEventListener("submit",function(e){
+
+e.preventDefault();
+
+// 🔒 CEGAH DOUBLE CLICK
+if(isSubmitting) return;
+isSubmitting = true;
+
+if(canvas.toDataURL().length<200){
+alert("Tanda tangan wajib diisi");
+isSubmitting = false;
+return;
+}
+
+const overlay = document.getElementById("loadingOverlay");
+overlay.classList.remove("hidden");
+
+// Disable tombol
+const submitBtn = this.querySelector("button[type='submit']");
+submitBtn.disabled = true;
+submitBtn.classList.add("opacity-50","cursor-not-allowed");
+
+const formData=new URLSearchParams();
+
+formData.append("nip",nip.value);
+formData.append("nama",nama.value);
+formData.append("subDivisi",subDivisi.value);
+formData.append("departemen",departemen.value);
+formData.append("jenisPelatihan",jenisPelatihan.value);
+formData.append("batchPTO",batchPTO.value);
+formData.append("kehadiran",kehadiran.value);
+formData.append("namaMateri",namaMateri.value);
+formData.append("tanggal",tanggal.value);
+formData.append("signature",canvas.toDataURL());
+
+fetch(WEB_APP_URL,{method:"POST",body:formData})
+.then(res=>res.json())
+.then(r=>{
+
+overlay.classList.add("hidden");
+
+if(r.status==="success"){
+alert("Berhasil disimpan");
+attendanceForm.reset();
+clearSignature();
+}else{
+alert(r.message);
+}
+
+// 🔓 BUKA KUNCI
+isSubmitting = false;
+submitBtn.disabled = false;
+submitBtn.classList.remove("opacity-50","cursor-not-allowed");
+
+})
+.catch(()=>{
+overlay.classList.add("hidden");
+alert("Terjadi kesalahan koneksi");
+
+// 🔓 BUKA KUNCI
+isSubmitting = false;
+submitBtn.disabled = false;
+submitBtn.classList.remove("opacity-50","cursor-not-allowed");
+
+});
+
+});
+
+</script>
+</body>
+</html>

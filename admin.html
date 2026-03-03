@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<div id="loginPage" class="flex items-center justify-center min-h-screen">
+<div class="bg-white p-8 rounded-xl shadow-xl w-80">
+<h2 class="text-xl font-bold mb-6 text-center">Admin Login</h2>
+<input id="adminId" class="w-full border p-3 rounded-lg mb-3" placeholder="ID">
+<input id="adminPw" type="password" class="w-full border p-3 rounded-lg mb-4" placeholder="Password">
+<button onclick="login()" class="w-full bg-indigo-600 text-white py-2 rounded-lg">
+Login
+</button>
+</div>
+</div>
+
+<div id="dashboard" class="hidden p-6">
+
+<h1 class="text-2xl font-bold mb-6">Dashboard Absensi</h1>
+
+<div class="bg-white p-6 rounded-xl shadow">
+
+<table class="min-w-full text-sm">
+<thead class="bg-gray-200">
+<tr>
+<th class="p-2">Tanggal</th>
+<th class="p-2">NIP</th>
+<th class="p-2">Nama</th>
+<th class="p-2">Program</th>
+<th class="p-2">Batch</th>
+<th class="p-2">Materi</th>
+<th class="p-2">Status</th>
+</tr>
+</thead>
+<tbody id="dataTable"></tbody>
+</table>
+
+</div>
+</div>
+
+<script>
+
+const WEB_APP_URL="https://script.google.com/macros/s/AKfycbyt7U_OLgJ73b89j3w_NavwvL3q-N9jCkKXwjK1oO43v_IvtDzz47TSw94wjaqFf7uPrQ/exec";
+
+function login(){
+if(adminId.value==="ADRLC" && adminPw.value==="Adrlc123"){
+loginPage.classList.add("hidden");
+dashboard.classList.remove("hidden");
+loadData();
+}else{
+alert("Login salah");
+}
+}
+
+function loadData(){
+
+fetch(WEB_APP_URL+"?action=getAbsensi")
+.then(res=>res.json())
+.then(data=>{
+
+const table=document.getElementById("dataTable");
+table.innerHTML="";
+
+if(!data || data.length<=1){
+table.innerHTML="<tr><td colspan='7' class='p-4 text-center'>Belum ada data</td></tr>";
+return;
+}
+
+data.slice(1).forEach(row=>{
+
+table.innerHTML+=`
+<tr class="border-b">
+<td class="p-2">${row[9]}</td>
+<td class="p-2">${row[1]}</td>
+<td class="p-2">${row[2]}</td>
+<td class="p-2">${row[5]}</td>
+<td class="p-2">${row[6]}</td>
+<td class="p-2">${row[8]}</td>
+<td class="p-2">${row[7]}</td>
+</tr>
+`;
+
+});
+
+});
+
+}
+
+</script>
+</body>
+</html>
